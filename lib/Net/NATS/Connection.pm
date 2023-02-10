@@ -9,6 +9,7 @@ use Class::XSAccessor {
     ],
     lvalue_accessors => [
         'buffer',
+        'default_buffer_size',
         'eobuf',
         'eof',
         'error',
@@ -23,6 +24,7 @@ sub new {
     my $self = $class->_new(@_);
 
     $self->socket_args->{Proto} = 'tcp';
+    $self->default_buffer_size ||= $self->socket_args->{BufferSize} || 1024;
 
     my $socket = IO::Socket::INET->new(%{$self->socket_args})
         or return;
@@ -96,7 +98,7 @@ sub nb_getline {
     # EOL was not found, so suck in more data if we can
     $self->eobuf = length $self->buffer;
     # append to our buffer from the file handle if any data is there.
-    my $count = sysread($self->_socket,$self->buffer,1024,$self->eobuf);
+    my $count = sysread($self->_socket,$self->buffer,$self->default_buffer_size,$self->eobuf);
 
     if (!defined $count) {
       return '0E0' if $! == EWOULDBLOCK; # we handle this error
@@ -142,7 +144,7 @@ sub nb_read {
     # not enough, so suck in more data if we can
     $self->eobuf = length $self->buffer;
     # append to our buffer from the file handle if any data is there.
-    my $count = sysread($self->_socket,$self->buffer,1024,$self->eobuf);
+    my $count = sysread($self->_socket,$self->buffer,$self->default_buffer_size,$self->eobuf);
 
     if (!defined $count) {
       return '0E0' if $! == EWOULDBLOCK; # we handle this error
